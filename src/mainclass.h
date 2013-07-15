@@ -15,6 +15,7 @@ public:
 public slots:
     
     void saveDocument(QQuickTextDocument* doc, QUrl filePath);
+    void runDocument(QQuickTextDocument* doc);
 protected:
     MainClass_d *m_d;
 };

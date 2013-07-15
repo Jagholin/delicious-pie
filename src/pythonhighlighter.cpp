@@ -50,7 +50,7 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
         << "and" << "as" << "assert" << "break" << "class" << "continue"
         << "def" << "del" << "elif" << "else" << "except" << "finally"
         << "for" << "from" << "global" << "if" << "import" << "in"
-        << "is" << "lambda" << "nonlocal" << "not" << "or" << "pass" 
+        << "is" << "lambda" << "nonlocal" << "not" << "or" << "pass" << "print"
         << "raise" << "return" << "try" << "while" << "with" << "yield");
 
     static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));

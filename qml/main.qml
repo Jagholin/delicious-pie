@@ -15,6 +15,11 @@ ApplicationWindow {
 				onTriggered: app.saveDoc()
 			}
 			MenuItem {
+				text: "run"
+				shortcut: "Ctrl+R"
+				onTriggered: mainApp.runDocument(centralEditor.textDocument)
+			}
+			MenuItem {
 				text: "Quit"
 				shortcut: "Ctrl+Q"
 				onTriggered: Qt.quit()

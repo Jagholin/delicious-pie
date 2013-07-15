@@ -1,3 +1,5 @@
+#include <Python.h>
+
 #include "mainclass.h"
 #include "pythonhighlighter.h"
 
@@ -14,6 +16,7 @@ public:
 
     int exec();
     void saveDocument(QQuickTextDocument* doc, QUrl filePath);
+    bool runPython(QString code);
 
 protected:
     PythonHighlighter m_Highlighter;
@@ -37,9 +40,17 @@ void MainClass::saveDocument(QQuickTextDocument* doc, QUrl filePath)
     m_d->saveDocument(doc, filePath);
 }
 
+void MainClass::runDocument(QQuickTextDocument* doc)
+{
+    if (! m_d->runPython(doc->textDocument()->toPlainText()))
+        qWarning() << "Python running failure";
+}
+
 MainClass_d::MainClass_d(int argc, char **argv, QObject *owner):
     m_app(argc, argv)
 {
+    Py_Initialize();
+
     qmlRegisterType<PythonHighlighter>("Highlighters", 1, 0, "PythonHighlighter");
 
     m_engine.rootContext()->setContextProperty("mainApp", owner);
@@ -57,3 +68,7 @@ void MainClass_d::saveDocument(QQuickTextDocument* doc, QUrl filePath)
     writer.write(doc->textDocument());
 }
 
+bool MainClass_d::runPython(QString code)
+{
+    return PyRun_SimpleString(code.toUtf8()) == 0;
+}
