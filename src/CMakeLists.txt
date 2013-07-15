@@ -2,7 +2,9 @@
 set(target delicious)
 
 set (Sources 
-    main.cpp
+	main.cpp
+    mainclass.cpp
+    mainclass.h
     pythonhighlighter.h
     pythonhighlighter.cpp
 )
