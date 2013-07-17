@@ -23,5 +23,7 @@ protected:
     //void highlightBlock( const QString &text );
 
     QTextCharFormat m_keywordFormat;
+    QTextCharFormat m_stringLitFormat;
+    QTextCharFormat m_commentFormat;
     PythonHighlighter_d *m_d;
 };

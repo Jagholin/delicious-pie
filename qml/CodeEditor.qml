@@ -1,21 +1,30 @@
 import QtQuick 2.1
 import QtQuick.Controls 1.0
 import Highlighters 1.0
-
-TextArea {
-	id: myArea
-	property PythonHighlighter codeHighlighter: PythonHighlighter {}
+Rectangle {
 	
-	function tryIt() {
-		console.log("Loading completed")
-		if (textDocument)
-		{
-			codeHighlighter.setDocument(textDocument)
-			console.log("Highlighter installed")
-			return false
-		}
-		return true
+	property alias textDocument: myArea.textDocument
+	
+	gradient: Gradient {
+		GradientStop { position: 0.0; color: "lightsteelblue" }
+		GradientStop { position: 1.0; color: "lightblue" }
 	}
 	
-	Component.onCompleted: tryIt()
+	TextArea {
+		id: myArea
+		property PythonHighlighter codeHighlighter: PythonHighlighter {}
+		
+		backgroundVisible: false
+		anchors.fill: parent
+	
+		function tryIt() {
+			if (textDocument)
+			{
+				codeHighlighter.setDocument(textDocument)
+				console.log("Highlighter installed")
+			}
+		}
+	
+		Component.onCompleted: tryIt()
+	}
 }

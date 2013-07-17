@@ -1,4 +1,5 @@
 #include "pythonhighlighter.h"
+#include "astparser.h"
 #include <QRegularExpression>
 #include <QtDebug>
 
@@ -20,6 +21,10 @@ PythonHighlighter::PythonHighlighter()
 {
     m_keywordFormat.setForeground(Qt::blue);
     m_keywordFormat.setFontWeight(QFont::Bold);
+
+    m_stringLitFormat.setForeground(Qt::darkMagenta);
+
+    m_commentFormat.setForeground(Qt::darkGray);
 }
 
 PythonHighlighter::~PythonHighlighter()
@@ -53,13 +58,36 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
         << "is" << "lambda" << "nonlocal" << "not" << "or" << "pass" << "print"
         << "raise" << "return" << "try" << "while" << "with" << "yield");
 
-    static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));
-    static const QRegularExpression regex(regexp);
-    
-    QRegularExpressionMatchIterator i = regex.globalMatch(text);
-    while (i.hasNext())
+    Tokenizer pyTokenizer;
+    QList<LexToken> tokenList;
+    pyTokenizer.setString(&text);
+    pyTokenizer.fillTokenList(tokenList);
+
+    for(LexToken token: tokenList)
     {
-        QRegularExpressionMatch match(i.next());
-        setFormat(match.capturedStart(), match.capturedLength(), m_owner->m_keywordFormat);
+        switch(token.type)
+        {
+        case LexToken::TOK_COMMENT:
+            setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_commentFormat);
+            break;
+        case LexToken::TOK_STRINGLIT:
+            setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_stringLitFormat);
+            break;
+        case LexToken::TOK_WORD:
+            if (pyKeywords.contains(token.subStr.toString()))
+                setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_keywordFormat);
+
+            break;
+        }
     }
+
+//     static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));
+//     static const QRegularExpression regex(regexp);
+//     
+//     QRegularExpressionMatchIterator i = regex.globalMatch(text);
+//     while (i.hasNext())
+//     {
+//         QRegularExpressionMatch match(i.next());
+//         setFormat(match.capturedStart(), match.capturedLength(), m_owner->m_keywordFormat);
+//     }
 }

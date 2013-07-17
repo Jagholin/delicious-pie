@@ -61,9 +61,11 @@ ApplicationWindow {
 			width: 250
 			height: 100
 			color: "white"
+			border.color: "black"
 			opacity: 1
 			Text {
 				anchors.fill: parent
+				anchors.margins: 4
 				text: "Simple Python IDE for beginners <br> by Jagh, 2013"
 			}
 		}
