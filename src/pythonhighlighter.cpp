@@ -24,6 +24,8 @@ PythonHighlighter::PythonHighlighter()
 
     m_stringLitFormat.setForeground(Qt::darkMagenta);
 
+    m_numberFormat.setForeground(Qt::green);
+
     m_commentFormat.setForeground(Qt::darkGray);
 }
 
@@ -61,7 +63,9 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
     Tokenizer pyTokenizer;
     QList<LexToken> tokenList;
     pyTokenizer.setString(&text);
-    pyTokenizer.fillTokenList(tokenList);
+    int prevBlockState = previousBlockState();
+    prevBlockState = prevBlockState == -1? 0: prevBlockState;
+    pyTokenizer.fillTokenList(tokenList, prevBlockState);
 
     for(LexToken token: tokenList)
     {
@@ -71,15 +75,25 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
             setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_commentFormat);
             break;
         case LexToken::TOK_STRINGLIT:
+        case LexToken::TOK_STRINGBORDER:
             setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_stringLitFormat);
             break;
-        case LexToken::TOK_WORD:
+        case LexToken::TOK_INTEGER:
+        case LexToken::TOK_FLOAT:
+            setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_numberFormat);
+            break;
+        case LexToken::TOK_IDENTIFIER:
             if (pyKeywords.contains(token.subStr.toString()))
                 setFormat(token.subStr.position(), token.subStr.size(), m_owner->m_keywordFormat);
 
             break;
         }
     }
+
+    if (tokenList.isEmpty())
+        setCurrentBlockState(prevBlockState);
+    else
+        setCurrentBlockState(tokenList.last().lexerState);
 
 //     static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));
 //     static const QRegularExpression regex(regexp);

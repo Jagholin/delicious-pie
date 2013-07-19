@@ -24,6 +24,7 @@ protected:
 
     QTextCharFormat m_keywordFormat;
     QTextCharFormat m_stringLitFormat;
+    QTextCharFormat m_numberFormat;
     QTextCharFormat m_commentFormat;
     PythonHighlighter_d *m_d;
 };

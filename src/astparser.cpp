@@ -14,25 +14,77 @@ template <typename Lexer>
 struct word_counter: public lex::lexer<Lexer>
 {
     word_counter():
-        comment(L"#.+$", LexToken::TOK_COMMENT)
-    ,   strLit(L"\\\"([^\\\"\\\\\\n]*(\\\\\\\")?)*\\\"", LexToken::TOK_STRINGLIT)
-    ,   word(L"\\w+", LexToken::TOK_WORD)
-    ,   symbolLit(L"[^A-Za-z0-9\\n \\t]+", LexToken::TOK_SYMBOL)
-    ,   spaceLit(L"[ \t]+", LexToken::TOK_SPACE)
-    ,   eol(L"\\n", LexToken::TOK_EOL)
+        singleQuoteLiteral(L"(r|u|R|U)?\'", LexToken::TOK_STRINGBORDER)
+    ,   singleQuoteLiteralContent(L"([^\\\'\\n]*(\\\\.)?)+", LexToken::TOK_STRINGLIT)
+    ,   singleQuoteLiteralEnd(L"\'", LexToken::TOK_STRINGBORDER)
+    ,   doubleQuoteLiteral(L"(r|u|R|U)?\\\"", LexToken::TOK_STRINGBORDER)
+    ,   doubleQuoteLiteralContent(L"([^\\\"\\n]*(\\\\.)?)+", LexToken::TOK_STRINGLIT)
+    ,   doubleQuoteLiteralEnd(L"\\\"", LexToken::TOK_STRINGBORDER)
+    ,   tripleSingleQuoteLiteral(L"(r|u|R|U)?\'\'\'", LexToken::TOK_STRINGBORDER)
+    ,   tripleSingleQuoteLiteralContent(L"([^\']+(\'|\'\')?)+", LexToken::TOK_STRINGLIT)
+    ,   tripleSingleQuoteLiteralEnd(L"\'\'\'", LexToken::TOK_STRINGBORDER)
+    ,   tripleDoubleQuoteLiteral(L"(r|u|R|U)?\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
+    ,   tripleDoubleQuoteLiteralContent(L"([^\"]+(\\\"|\\\"\\\")?)+", LexToken::TOK_STRINGLIT)
+    ,   tripleDoubleQuoteLiteralEnd(L"\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
+    ,   comment(L"#.*$", LexToken::TOK_COMMENT)
     {
-        this->self = comment | strLit | symbolLit | spaceLit | word | eol;
+        this->self += comment;
+
+        this->self.add
+            (L"\\+|-|\\*\\*|\\*|\\/\\/|\\/|%|<<|>>|&|\\||\\^|~|<=|>=|<|>|==|!=", LexToken::TOK_OPERATOR)
+            (L"\\(|\\)|\\[|\\]|\\{|\\}|,|:|\\.|;|@|=", LexToken::TOK_DELIMETER)
+            (L"[ \t]+", LexToken::TOK_SPACE)
+            (L"[a-zA-Z_]\\w*", LexToken::TOK_IDENTIFIER)
+            (L"(\\d+)?\\.\\d+|\\d+\\.|((\\d+)?\\.\\d+|\\d+\\.?)[eE][+\\-]?\\d+", LexToken::TOK_FLOAT)
+            (L"[1-9]\\d*|0([xX][0-9a-fA-F]+|[bB][01]+|[oO][0-7]+)", LexToken::TOK_INTEGER)
+            (L"\\n", LexToken::TOK_EOL);
+
+        this->self += singleQuoteLiteral [lex::_state = L"SINGLEQUOTE"]
+            |   doubleQuoteLiteral [lex::_state = L"DOUBLEQUOTE"]
+            |   tripleSingleQuoteLiteral [lex::_state = L"TRIPLESINGLEQUOTE"]
+            |   tripleDoubleQuoteLiteral [lex::_state = L"TRIPLEDOUBLEQUOTE"];
+
+        this->self(L"SINGLEQUOTE") =
+            singleQuoteLiteralContent | singleQuoteLiteralEnd [lex::_state = L"INITIAL"];
+        this->self(L"DOUBLEQUOTE") = 
+            doubleQuoteLiteralContent | doubleQuoteLiteralEnd [lex::_state = L"INITIAL"];
+        this->self(L"TRIPLESINGLEQUOTE") =
+            tripleSingleQuoteLiteralContent | tripleSingleQuoteLiteralEnd [lex::_state = L"INITIAL"];
+        this->self(L"TRIPLEDOUBLEQUOTE") =
+            tripleDoubleQuoteLiteralContent | tripleDoubleQuoteLiteralEnd [lex::_state = L"INITIAL"];
+
+        initStatesMap();
     }
 
-    lex::token_def<boost::spirit::unused_type, wchar_t, LexToken::LexTokenType> 
-        comment, strLit, word, symbolLit, spaceLit, eol;  
+    void initStatesMap()
+    {
+        statesMap.insert(map_state(L"INITIAL"), L"INITIAL");
+        statesMap.insert(map_state(L"SINGLEQUOTE"), L"SINGLEQUOTE");
+        statesMap.insert(map_state(L"DOUBLEQUOTE"), L"DOUBLEQUOTE");
+        statesMap.insert(map_state(L"TRIPLESINGLEQUOTE"), L"TRIPLESINGLEQUOTE");
+        statesMap.insert(map_state(L"TRIPLEDOUBLEQUOTE"), L"TRIPLEDOUBLEQUOTE");
+    }
+
+    const wchar_t* mapIntegerToState(size_t val)
+    {
+        return statesMap[val].c_str();
+    }
+
+    lex::token_def<boost::spirit::unused_type, wchar_t, LexToken::LexTokenType>
+        singleQuoteLiteral, singleQuoteLiteralContent, singleQuoteLiteralEnd,
+        doubleQuoteLiteral, doubleQuoteLiteralContent, doubleQuoteLiteralEnd,
+        tripleSingleQuoteLiteral, tripleSingleQuoteLiteralContent, tripleSingleQuoteLiteralEnd,
+        tripleDoubleQuoteLiteral, tripleDoubleQuoteLiteralContent, tripleDoubleQuoteLiteralEnd,
+        comment;
+
+    QMap <size_t, std::wstring> statesMap;
 };
 
 typedef lex::lexertl::token<std::wstring::const_iterator
     , boost::mpl::vector<>
-    , boost::mpl::false_
+    , boost::mpl::true_
     , LexToken::LexTokenType> token_type;
-typedef lex::lexertl::lexer<token_type> lexer_type;
+typedef lex::lexertl::actor_lexer<token_type> lexer_type;
 
 bool onTokenReceived(token_type const& token, std::wstring const& referenceString,
                      QString const *sourceStr,
@@ -45,6 +97,7 @@ bool onTokenReceived(token_type const& token, std::wstring const& referenceStrin
     LexToken myToken;
     myToken.type = token.id();
     myToken.subStr = ref;
+    myToken.lexerState = token.state();
     tokList.append(myToken);
     return true;
 }
@@ -60,10 +113,12 @@ void Tokenizer::setString(const QString* str)
     m_str = str;
 }
 
-void Tokenizer::fillTokenList(QList<LexToken> &list)
+bool Tokenizer::fillTokenList(QList<LexToken> &list, size_t initialState)
 {
     std::wstring unicodeStr = m_str->toStdWString();
     auto begin = unicodeStr.cbegin();
-    lex::tokenize(begin, unicodeStr.cend(), word_counter<lexer_type>(), 
-        std::bind(&onTokenReceived, std::placeholders::_1, std::cref(unicodeStr), m_str, std::ref(list)));
+    word_counter<lexer_type> pythonLexer;
+    return lex::tokenize(begin, unicodeStr.cend(), pythonLexer, 
+        std::bind(&onTokenReceived, std::placeholders::_1, std::cref(unicodeStr), m_str, std::ref(list))
+        , pythonLexer.mapIntegerToState(initialState));
 }
