@@ -17,8 +17,7 @@ Rectangle {
 		anchors.right: parent.right
 		y: myArea.positionToRectangle(myArea.cursorPosition).y + 6 
 		height: myArea.positionToRectangle(myArea.cursorPosition).height
-		
-		visible: false
+		z: 1
 	}
 	
 	Column {
@@ -52,7 +51,7 @@ Rectangle {
 				console.log("Highlighter installed")
 			}
 		}
-	
+		z: 2
 		Component.onCompleted: tryIt()
 	}
 }

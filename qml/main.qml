@@ -18,6 +18,11 @@ ApplicationWindow {
 				onTriggered: app.saveDoc()
 			}
 			MenuItem {
+				text: "Open"
+				shortcut: "Ctrl+O"
+				onTriggered: app.openDoc()
+			}
+			MenuItem {
 				text: "run"
 				shortcut: "Ctrl+R"
 				onTriggered: mainApp.runDocument(tabView.getTab(tabView.currentIndex).item.textDocument)
@@ -114,6 +119,26 @@ ApplicationWindow {
 		}
 	}
 	
+	FileDialog {
+		id: fileOpener
+		title: "Select a file to be opened"
+		nameFilters: "*.py"
+		selectExisting: true
+		selectFolder: false
+		selectMultiple: false
+		
+		onAccepted: {
+			var tabName = fileUrl.toString()
+			tabName = tabName.slice(tabName.lastIndexOf("/") + 1)
+			var myTab = tabView.addTab(tabName, editorComponent)
+			print(myTab)
+			myTab.onLoaded.connect(function(){
+				mainApp.loadFile(myTab.item.textDocument, fileUrl)
+			})
+			tabView.currentIndex = tabView.count - 1
+		}
+	}
+	
 	function about() {
 		aboutView.visible = true
 		aboutView.state = "on"
@@ -121,5 +146,9 @@ ApplicationWindow {
 	
 	function saveDoc() {
 		fileChooser.open()
+	}
+	
+	function openDoc() {
+		fileOpener.open()
 	}
 }

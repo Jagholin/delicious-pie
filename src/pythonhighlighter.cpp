@@ -5,6 +5,7 @@
 
 class PythonHighlighter_d : public QSyntaxHighlighter
 {
+    Q_OBJECT 
 public:
     PythonHighlighter_d(QTextDocument *doc, PythonHighlighter *owner):
         QSyntaxHighlighter(doc)
@@ -90,10 +91,16 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
         }
     }
 
+    int myOldState = currentBlockState();
+    int myNewState;
     if (tokenList.isEmpty())
-        setCurrentBlockState(prevBlockState);
+        myNewState = prevBlockState;
     else
-        setCurrentBlockState(tokenList.last().lexerState);
+        myNewState = tokenList.last().lexerState;
+    if (myNewState != myOldState)
+    {
+        setCurrentBlockState(myNewState);
+    }
 
 //     static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));
 //     static const QRegularExpression regex(regexp);
@@ -105,3 +112,5 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
 //         setFormat(match.capturedStart(), match.capturedLength(), m_owner->m_keywordFormat);
 //     }
 }
+
+#include "pythonhighlighter.moc"

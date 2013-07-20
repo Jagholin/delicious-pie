@@ -21,10 +21,10 @@ struct word_counter: public lex::lexer<Lexer>
     ,   doubleQuoteLiteralContent(L"([^\\\"\\n]*(\\\\.)?)+", LexToken::TOK_STRINGLIT)
     ,   doubleQuoteLiteralEnd(L"\\\"", LexToken::TOK_STRINGBORDER)
     ,   tripleSingleQuoteLiteral(L"(r|u|R|U)?\'\'\'", LexToken::TOK_STRINGBORDER)
-    ,   tripleSingleQuoteLiteralContent(L"([^\']+(\'|\'\')?)+", LexToken::TOK_STRINGLIT)
+    ,   tripleSingleQuoteLiteralContent(L"([^\']+(\'[^\']|\'\'[^\'])?)+", LexToken::TOK_STRINGLIT)
     ,   tripleSingleQuoteLiteralEnd(L"\'\'\'", LexToken::TOK_STRINGBORDER)
     ,   tripleDoubleQuoteLiteral(L"(r|u|R|U)?\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
-    ,   tripleDoubleQuoteLiteralContent(L"([^\"]+(\\\"|\\\"\\\")?)+", LexToken::TOK_STRINGLIT)
+    ,   tripleDoubleQuoteLiteralContent(L"([^\"]+(\\\"[^\"]|\\\"\\\"[^\"])?)+", LexToken::TOK_STRINGLIT)
     ,   tripleDoubleQuoteLiteralEnd(L"\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
     ,   comment(L"#.*$", LexToken::TOK_COMMENT)
     {
@@ -90,10 +90,8 @@ bool onTokenReceived(token_type const& token, std::wstring const& referenceStrin
                      QString const *sourceStr,
                      QList<LexToken> &tokList)
 {
-    //QString str(QByteArray(token.value().begin(), token.value().size()));
     QStringRef ref(sourceStr, token.value().begin() - referenceString.begin()
         , token.value().size());
-    //qDebug() << "Token: " << ref << ";";
     LexToken myToken;
     myToken.type = token.id();
     myToken.subStr = ref;
@@ -118,7 +116,17 @@ bool Tokenizer::fillTokenList(QList<LexToken> &list, size_t initialState)
     std::wstring unicodeStr = m_str->toStdWString();
     auto begin = unicodeStr.cbegin();
     word_counter<lexer_type> pythonLexer;
-    return lex::tokenize(begin, unicodeStr.cend(), pythonLexer, 
-        std::bind(&onTokenReceived, std::placeholders::_1, std::cref(unicodeStr), m_str, std::ref(list))
-        , pythonLexer.mapIntegerToState(initialState));
+
+    auto startIter = pythonLexer.begin(begin, unicodeStr.cend(), pythonLexer.mapIntegerToState(initialState));
+    auto endIter = pythonLexer.end();
+    for (; startIter != endIter && token_is_valid(*startIter); ++startIter){
+        QStringRef ref(m_str, startIter->value().begin() - unicodeStr.begin()
+            , startIter->value().size());
+        LexToken myToken;
+        myToken.type = startIter->id();
+        myToken.subStr = ref;
+        myToken.lexerState = startIter.get_state();
+        list.append(myToken);
+    }
+    return startIter == endIter;
 }

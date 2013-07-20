@@ -40,6 +40,14 @@ void MainClass::saveDocument(QQuickTextDocument* doc, QUrl filePath)
     m_d->saveDocument(doc, filePath);
 }
 
+void MainClass::loadFile(QQuickTextDocument* doc, QUrl filePath)
+{
+    QFile file(filePath.toLocalFile());
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QByteArray fileText = file.readAll();
+    doc->textDocument()->setPlainText(QString::fromUtf8(fileText));
+}
+
 void MainClass::runDocument(QQuickTextDocument* doc)
 {
     if (! m_d->runPython(doc->textDocument()->toPlainText()))
