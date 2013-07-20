@@ -6,6 +6,9 @@ ApplicationWindow {
 	id: app
 	visible: true
 	
+	width: 800
+	height: 600
+	
 	menuBar: MenuBar {
 		Menu {
 			title: "File"
