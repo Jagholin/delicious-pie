@@ -3,6 +3,7 @@ delicious-pie
 
 a python ide for beginners
 
+![Screenshot](https://raw.github.com/FoCGOnly/delicious-pie/gh-pages/screen.png)
 
 Environment
 ===========
