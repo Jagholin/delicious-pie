@@ -4,6 +4,7 @@ import Highlighters 1.0
 Rectangle {
 	id: codeEditor
 	property alias textDocument: myArea.textDocument
+	property alias flickableItem: myArea.flickableItem
 	
 	gradient: Gradient {
 		GradientStop { position: 0.0; color: "lightsteelblue" }
@@ -22,7 +23,7 @@ Rectangle {
 	
 	Column {
 		anchors.fill: parent
-		anchors.topMargin: 6
+		anchors.topMargin: -flickableItem.contentY + 6
 		Repeater {
 			model: myArea.lineCount
 			Rectangle {

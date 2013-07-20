@@ -20,7 +20,7 @@ ApplicationWindow {
 			MenuItem {
 				text: "run"
 				shortcut: "Ctrl+R"
-				onTriggered: mainApp.runDocument(centralEditor.textDocument)
+				onTriggered: mainApp.runDocument(tabView.getTab(tabView.currentIndex).item.textDocument)
 			}
 			MenuItem {
 				text: "Quit"
@@ -38,10 +38,19 @@ ApplicationWindow {
 		}
 	}
 	
-	CodeEditor {
-		id: centralEditor
-		anchors.fill: parent	
+	TabView {
+		id: tabView
+		anchors.fill: parent
 	}
+	
+	Component {
+		id: editorComponent
+		CodeEditor {
+			anchors.fill: parent	
+		}
+	}
+	
+	Component.onCompleted: tabView.addTab("untitled.py", editorComponent)
 	
 	Rectangle {
 		id: aboutView
@@ -97,7 +106,12 @@ ApplicationWindow {
 		selectFolder: false
 		selectMultiple: false
 		
-		onAccepted: mainApp.saveDocument(centralEditor.textDocument, fileUrl)
+		onAccepted: {
+			mainApp.saveDocument(tabView.getTab(tabView.currentIndex).item.textDocument, fileUrl)
+			var tabName = fileUrl.toString()
+			tabName = tabName.slice(tabName.lastIndexOf("/") + 1)
+			tabView.getTab(tabView.currentIndex).title = tabName
+		}
 	}
 	
 	function about() {
