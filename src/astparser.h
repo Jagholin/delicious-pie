@@ -2,6 +2,8 @@
 #include <QString>
 #include <QObject>
 
+#define SPIRIT_LEXER
+
 struct LexToken
 {
     enum LexTokenType 
@@ -22,6 +24,7 @@ struct LexToken
     size_t lexerState;
 };
 
+class Tokenizer_d;
 class Tokenizer: public QObject
 {
     Q_OBJECT
@@ -34,4 +37,5 @@ public slots:
 
 protected:
     QString const *m_str;
+    Tokenizer_d *m_d; 
 };

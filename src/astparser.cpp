@@ -2,6 +2,60 @@
 
 #include <QDebug>
 #include <QString>
+#include <QStringList>
+#include <QMap>
+#include <QFile>
+#include <QList>
+#include <string>
+
+struct PythonLexerRules
+{
+    struct ruleDef {
+        std::string tokenName;
+        std::wstring spiritDef, lexertlDef;
+        std::wstring stateStart, stateEnd;
+        LexToken::LexTokenType tokenType;
+    };
+
+    PythonLexerRules() {
+        QFile ruleDefFile("ruledef.txt");
+        ruleDefFile.open(QIODevice::ReadOnly);
+        QString ruleLine;
+        while(!ruleDefFile.atEnd()) {
+            ruleLine = QString::fromUtf8(ruleDefFile.readLine());
+            QStringList ruleDefs = ruleLine.split('\t');
+            ruleDef currentDef;
+            currentDef.tokenName = ruleDefs[0].toStdString();
+            currentDef.spiritDef = ruleDefs[1].toStdWString();
+            if (ruleDefs.size() >= 6) {
+                currentDef.lexertlDef = ruleDefs[2].toStdWString();
+                currentDef.stateStart = ruleDefs[3].toStdWString();
+                currentDef.stateEnd = ruleDefs[4].toStdWString();
+                currentDef.tokenType = static_cast<LexToken::LexTokenType>(ruleDefs[5].toInt());
+            }
+            else {
+                currentDef.lexertlDef = currentDef.spiritDef;
+                currentDef.stateStart = ruleDefs[2].toStdWString();
+                currentDef.stateEnd = ruleDefs[3].toStdWString();
+                currentDef.tokenType = static_cast<LexToken::LexTokenType>(ruleDefs[4].toInt());
+            }
+            rulesList.append(currentDef);
+        }
+    }
+
+    QList <ruleDef> rulesList;
+    static PythonLexerRules* self;
+
+    static const PythonLexerRules* getSingleton(){
+        if (self == nullptr) self = new PythonLexerRules;
+        return self;
+    }
+
+};
+
+PythonLexerRules* PythonLexerRules::self = nullptr;
+
+#ifdef SPIRIT_LEXER
 
 #include <boost/spirit/include/lex.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
@@ -10,50 +64,45 @@
 
 namespace lex = boost::spirit::lex;
 
-template <typename Lexer>
-struct word_counter: public lex::lexer<Lexer>
+struct ChangeLexerState
 {
-    word_counter():
-        singleQuoteLiteral(L"(r|u|R|U)?\'", LexToken::TOK_STRINGBORDER)
-    ,   singleQuoteLiteralContent(L"([^\\\'\\n]*(\\\\.)?)+", LexToken::TOK_STRINGLIT)
-    ,   singleQuoteLiteralEnd(L"\'", LexToken::TOK_STRINGBORDER)
-    ,   doubleQuoteLiteral(L"(r|u|R|U)?\\\"", LexToken::TOK_STRINGBORDER)
-    ,   doubleQuoteLiteralContent(L"([^\\\"\\n]*(\\\\.)?)+", LexToken::TOK_STRINGLIT)
-    ,   doubleQuoteLiteralEnd(L"\\\"", LexToken::TOK_STRINGBORDER)
-    ,   tripleSingleQuoteLiteral(L"(r|u|R|U)?\'\'\'", LexToken::TOK_STRINGBORDER)
-    ,   tripleSingleQuoteLiteralContent(L"([^\']+(\'[^\']|\'\'[^\'])?)+", LexToken::TOK_STRINGLIT)
-    ,   tripleSingleQuoteLiteralEnd(L"\'\'\'", LexToken::TOK_STRINGBORDER)
-    ,   tripleDoubleQuoteLiteral(L"(r|u|R|U)?\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
-    ,   tripleDoubleQuoteLiteralContent(L"([^\"]+(\\\"[^\"]|\\\"\\\"[^\"])?)+", LexToken::TOK_STRINGLIT)
-    ,   tripleDoubleQuoteLiteralEnd(L"\\\"\\\"\\\"", LexToken::TOK_STRINGBORDER)
-    ,   comment(L"#.*$", LexToken::TOK_COMMENT)
+    ChangeLexerState(size_t state):
+        newState(state)
     {
-        this->self += comment;
 
-        this->self.add
-            (L"\\+|-|\\*\\*|\\*|\\/\\/|\\/|%|<<|>>|&|\\||\\^|~|<=|>=|<|>|==|!=", LexToken::TOK_OPERATOR)
-            (L"\\(|\\)|\\[|\\]|\\{|\\}|,|:|\\.|;|@|=", LexToken::TOK_DELIMETER)
-            (L"[ \t]+", LexToken::TOK_SPACE)
-            (L"[a-zA-Z_]\\w*", LexToken::TOK_IDENTIFIER)
-            (L"(\\d+)?\\.\\d+|\\d+\\.|((\\d+)?\\.\\d+|\\d+\\.?)[eE][+\\-]?\\d+", LexToken::TOK_FLOAT)
-            (L"[1-9]\\d*|0([xX][0-9a-fA-F]+|[bB][01]+|[oO][0-7]+)", LexToken::TOK_INTEGER)
-            (L"\\n", LexToken::TOK_EOL);
+    }
 
-        this->self += singleQuoteLiteral [lex::_state = L"SINGLEQUOTE"]
-            |   doubleQuoteLiteral [lex::_state = L"DOUBLEQUOTE"]
-            |   tripleSingleQuoteLiteral [lex::_state = L"TRIPLESINGLEQUOTE"]
-            |   tripleDoubleQuoteLiteral [lex::_state = L"TRIPLEDOUBLEQUOTE"];
+    template <typename Iterator, typename IdType, typename Context>
+    void operator()(Iterator&, Iterator&, lex::pass_flags, IdType&, Context& ctx)
+    {
+        ctx.set_state(newState);
+    }
+    size_t newState;
+};
 
-        this->self(L"SINGLEQUOTE") =
-            singleQuoteLiteralContent | singleQuoteLiteralEnd [lex::_state = L"INITIAL"];
-        this->self(L"DOUBLEQUOTE") = 
-            doubleQuoteLiteralContent | doubleQuoteLiteralEnd [lex::_state = L"INITIAL"];
-        this->self(L"TRIPLESINGLEQUOTE") =
-            tripleSingleQuoteLiteralContent | tripleSingleQuoteLiteralEnd [lex::_state = L"INITIAL"];
-        this->self(L"TRIPLEDOUBLEQUOTE") =
-            tripleDoubleQuoteLiteralContent | tripleDoubleQuoteLiteralEnd [lex::_state = L"INITIAL"];
+template <typename Lexer>
+struct python_lex_def: public lex::lexer<Lexer>
+{
+    python_lex_def()
+    {
+        PythonLexerRules const *rules = PythonLexerRules::getSingleton();
 
         initStatesMap();
+
+        for (auto const lexRule: rules->rulesList)
+        {
+            token_def_type myToken(lexRule.spiritDef, lexRule.tokenType);
+            auto insertedToken = tokendefs.insert(lexRule.tokenName, myToken);
+            if (lexRule.stateStart.compare(L"INITIAL") == 0)
+                this->self += (*insertedToken)[ChangeLexerState(map_state(lexRule.stateEnd.c_str()))];
+            else
+            {
+                // doesn't work without next line
+                auto currentLexerDef = this->self(lexRule.stateStart); // >:-E
+                // Seriously, WTF?
+                currentLexerDef += (*insertedToken)[ChangeLexerState(map_state(lexRule.stateEnd.c_str()))];
+            }
+        }
     }
 
     void initStatesMap()
@@ -69,13 +118,9 @@ struct word_counter: public lex::lexer<Lexer>
     {
         return statesMap[val].c_str();
     }
-
-    lex::token_def<boost::spirit::unused_type, wchar_t, LexToken::LexTokenType>
-        singleQuoteLiteral, singleQuoteLiteralContent, singleQuoteLiteralEnd,
-        doubleQuoteLiteral, doubleQuoteLiteralContent, doubleQuoteLiteralEnd,
-        tripleSingleQuoteLiteral, tripleSingleQuoteLiteralContent, tripleSingleQuoteLiteralEnd,
-        tripleDoubleQuoteLiteral, tripleDoubleQuoteLiteralContent, tripleDoubleQuoteLiteralEnd,
-        comment;
+    typedef lex::token_def<boost::spirit::unused_type, wchar_t, LexToken::LexTokenType> token_def_type;
+    QMap<std::string, token_def_type>
+        tokendefs;
 
     QMap <size_t, std::wstring> statesMap;
 };
@@ -86,36 +131,17 @@ typedef lex::lexertl::token<std::wstring::const_iterator
     , LexToken::LexTokenType> token_type;
 typedef lex::lexertl::actor_lexer<token_type> lexer_type;
 
-bool onTokenReceived(token_type const& token, std::wstring const& referenceString,
-                     QString const *sourceStr,
-                     QList<LexToken> &tokList)
+class Tokenizer_d
 {
-    QStringRef ref(sourceStr, token.value().begin() - referenceString.begin()
-        , token.value().size());
-    LexToken myToken;
-    myToken.type = token.id();
-    myToken.subStr = ref;
-    myToken.lexerState = token.state();
-    tokList.append(myToken);
-    return true;
-}
-
-Tokenizer::Tokenizer():
-    m_str(nullptr)
-{
-
-}
-
-void Tokenizer::setString(const QString* str)
-{
-    m_str = str;
-}
+public:
+    python_lex_def<lexer_type> m_lexer;
+};
 
 bool Tokenizer::fillTokenList(QList<LexToken> &list, size_t initialState)
 {
     std::wstring unicodeStr = m_str->toStdWString();
     auto begin = unicodeStr.cbegin();
-    word_counter<lexer_type> pythonLexer;
+    python_lex_def<lexer_type> &pythonLexer = m_d->m_lexer;
 
     auto startIter = pythonLexer.begin(begin, unicodeStr.cend(), pythonLexer.mapIntegerToState(initialState));
     auto endIter = pythonLexer.end();
@@ -129,4 +155,35 @@ bool Tokenizer::fillTokenList(QList<LexToken> &list, size_t initialState)
         list.append(myToken);
     }
     return startIter == endIter;
+}
+#else
+
+#include "lexertl/iterator.hpp"
+#include "lexertl/rules.hpp"
+#include "lexertl/generator.hpp"
+#include "lexertl/state_machine.hpp"
+
+struct PythonLexer
+{
+    lexertl::wrules m_rules;
+    lexertl::wstate_machine m_sm;
+    lexertl::wsmatch m_res;
+};
+
+bool Tokenizer::fillTokenList(QList<LexToken> &, size_t initialState /* = 0 */)
+{
+    throw std::runtime_error("Not implemented");
+}
+
+#endif //SPIRIT_LEXER
+
+Tokenizer::Tokenizer():
+    m_str(nullptr)
+{
+    m_d = new Tokenizer_d;
+}
+
+void Tokenizer::setString(const QString* str)
+{
+    m_str = str;
 }

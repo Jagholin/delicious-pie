@@ -1,6 +1,8 @@
 import QtQuick 2.1
 import QtQuick.Controls 1.0
 import QtQuick.Dialogs 1.0
+import QtQuick.LocalStorage 2.0
+import "settings.js" as LocalSettings
 
 ApplicationWindow {
 	id: app
@@ -51,11 +53,28 @@ ApplicationWindow {
 	Component {
 		id: editorComponent
 		CodeEditor {
-			anchors.fill: parent	
+			anchors.fill: parent
 		}
 	}
 	
-	Component.onCompleted: tabView.addTab("untitled.py", editorComponent)
+	Component.onCompleted: {
+		var myDb = LocalSettings.openDatabase()
+		var tabName = LocalSettings.getSettingValue(myDb, "LastFile")
+		if (!tabName) {
+			tabView.addTab("untitled.py", editorComponent)
+			return
+		}
+		var myTab = tabView.addTab(tabName, editorComponent)
+		
+		myTab.onLoaded.connect(function(){
+			mainApp.loadFile(myTab.item.textDocument, tabName)
+		})
+	}
+	
+	Component.onDestruction: {
+		var myDb = LocalSettings.openDatabase()
+		LocalSettings.setSettingValue(myDb, "LastFile", tabView.getTab(tabView.currentIndex).item.openUrl)
+	}
 	
 	Rectangle {
 		id: aboutView

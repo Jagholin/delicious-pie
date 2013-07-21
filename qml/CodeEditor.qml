@@ -5,6 +5,7 @@ Rectangle {
 	id: codeEditor
 	property alias textDocument: myArea.textDocument
 	property alias flickableItem: myArea.flickableItem
+	property url openUrl: "./untitled.py"
 	
 	gradient: Gradient {
 		GradientStop { position: 0.0; color: "lightsteelblue" }

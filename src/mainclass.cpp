@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QQuickTextDocument>
 #include <QTextDocumentWriter>
+#include <QDebug>
 
 class MainClass_d 
 {
@@ -63,6 +64,7 @@ MainClass_d::MainClass_d(int argc, char **argv, QObject *owner):
 
     m_engine.rootContext()->setContextProperty("mainApp", owner);
     m_engine.load("qml/main.qml");
+    qDebug() << m_engine.offlineStoragePath();
 }
 
 int MainClass_d::exec()

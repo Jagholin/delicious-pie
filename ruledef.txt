@@ -1,0 +1,20 @@
+sqLiteral	(r|u|R|U)?'	INITIAL	SINGLEQUOTE	2
+sqLiteralContent	([^\'\n]*(\\.)?)+	SINGLEQUOTE	SINGLEQUOTE	3
+sqLiteralEnd	'	SINGLEQUOTE	INITIAL	2
+dqLiteral	(r|u|R|U)?\"	INITIAL	DOUBLEQUOTE	2
+dqLiteralContent	([^\"\n]*(\\.)?)+	DOUBLEQUOTE	DOUBLEQUOTE	3
+dqLiteralEnd	\"	DOUBLEQUOTE	INITIAL	2
+tsqLiteral	(r|u|R|U)?'''	INITIAL	TRIPLESINGLEQUOTE	2
+tsqLiteralContent	([^']+('[^']|''[^'])?)+	TRIPLESINGLEQUOTE	TRIPLESINGLEQUOTE	3
+tsqLiteralEnd	'''	TRIPLESINGLEQUOTE	INITIAL	2
+tdqLiteral	(r|u|R|U)?\"\"\"	INITIAL	TRIPLEDOUBLEQUOTE	2
+tdqLiteralContent	([^"]+(\"[^"]|\"\"[^"])?)+	TRIPLEDOUBLEQUOTE	TRIPLEDOUBLEQUOTE	3
+tdqLiteralEnd	\"\"\"	TRIPLEDOUBLEQUOTE	INITIAL	2
+comment	#.*$	INITIAL	INITIAL	1
+operator	\+|-|\*\*|\*|\/\/|\/|%|<<|>>|&|\||\^|~|<=|>=|<|>|==|!=	INITIAL	INITIAL	5
+delimeter	\(|\)|\[|\]|\{|\}|,|:|\.|;|@|=	INITIAL	INITIAL	6
+whitespace	[ \t]+	INITIAL	INITIAL	9
+identifier	[a-zA-Z_]\w*	INITIAL	INITIAL	4
+floatnumber	(\d+)?\.\d+|\d+\.|((\d+)?\.\d+|\d+\.?)[eE][+\-]?\d+	INITIAL	INITIAL	8
+intnumber	[1-9]\d*|0([xX][0-9a-fA-F]+|[bB][01]+|[oO][0-7]+)	INITIAL	INITIAL	7
+endofline	\n	INITIAL	INITIAL	10

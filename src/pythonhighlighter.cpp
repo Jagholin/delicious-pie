@@ -101,16 +101,6 @@ void PythonHighlighter_d::highlightBlock(const QString &text)
     {
         setCurrentBlockState(myNewState);
     }
-
-//     static const QString regexp(QString("\\b(%1)\\b").arg(pyKeywords.join("|")));
-//     static const QRegularExpression regex(regexp);
-//     
-//     QRegularExpressionMatchIterator i = regex.globalMatch(text);
-//     while (i.hasNext())
-//     {
-//         QRegularExpressionMatch match(i.next());
-//         setFormat(match.capturedStart(), match.capturedLength(), m_owner->m_keywordFormat);
-//     }
 }
 
 #include "pythonhighlighter.moc"
